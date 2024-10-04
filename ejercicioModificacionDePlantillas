@@ -1,0 +1,142 @@
+<t t-name="account.report_invoice_document">
+    <t t-set="o" t-value="o.with_context(lang=lang)"/>
+
+    <div class="container-fluid mb-5">
+        <img class="mb-1" t-att-src="'/web/image/res.company/%d/logo' % o.company_id.id" style="max-width: 50px;" alt="Company Logo"/><br/>
+        <div class="border-top border-dark">
+            <t t-out="o.company_id.name"/><br/>
+            <t t-if="o.company_id.street">
+                <t t-esc="o.company_id.street"/><br/>
+            </t>
+            <t t-if="o.company_id.street2">
+                <t t-esc="o.company_id.street2"/><br/>
+            </t>
+            <t t-if="o.company_id.zip">
+                <t t-esc="o.company_id.zip"/><br/>
+            </t>
+            <t t-if="o.company_id.city">
+                <t t-esc="o.company_id.city"/><br/>
+            </t>
+            <t t-if="o.company_id.state_id">
+                <t t-esc="o.company_id.state_id.name"/><br/>
+            </t>
+            <t t-if="o.company_id.country_id">
+                <t t-esc="o.company_id.country_id.name"/>
+            </t>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="mt-5 mb-5">
+            <span t-if="o.amount_residual &gt;0">Factura
+                <t t-out="o.invoice_origin"/> a la espera de pago
+            </span>
+            <span t-else="">Factura
+                <t t-out="o.invoice_origin"/> pagada:
+                <t t-out="o.name"/>
+            </span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Cliente</h1>
+        <div class="row">
+            <div class="col text-center border"><strong>Nombre y Apellidos</strong></div>
+            <div class="col text-center border"><strong>Direccion</strong></div>
+        </div>
+        <div class="row">
+            <div class="col text-center " t-field="o.partner_id"/>
+            <!--<div class="col text-center " t-field="o.partner_shipping_id" t-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;], &quot;no_marker&quot;: True}"/>-->
+            <div class="col text-center">
+                <t t-if="o.partner_id.street">C/
+                    <t t-esc="o.partner_id.street"/><br/>
+                </t>
+                <t t-if="o.partner_id.street2">CP:
+                    <t t-esc="o.partner_id.street2"/><br/>
+                </t>
+                <t t-if="o.partner_id.zip">
+                    <t t-esc="o.partner_id.zip"/><br/>
+                </t>
+                <t t-if="o.partner_id.city">
+                    <t t-esc="o.partner_id.city"/>,
+                </t>
+                <t t-if="o.partner_id.state_id">
+                    <t t-esc="o.partner_id.state_id.name"/><br/>
+                </t>
+                <t t-if="o.partner_id.country_id">
+                    <t t-esc="o.partner_id.country_id.name"/>
+                </t>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Productos</h1>
+        <div class="row">
+            <div class="col bg-secondary text-center text-white border">Nombre</div>
+            <div class="col bg-secondary text-center text-white border">Unidades</div>
+            <div class="col bg-secondary text-center text-white border">Precio por unidad</div>
+            <div class="col bg-secondary text-center text-white border">Precio sin tasas</div>
+            <div class="col bg-secondary text-center text-white border">Tasas(%)</div>
+            <div class="col bg-secondary text-center text-white border">Tasas(€)</div>
+            <div class="col bg-secondary text-center text-white border">Precio con tasas</div>
+        </div>
+        <t t-set="current_tax_total" t-value="0"/>
+        <t t-set="current_price_total" t-value="0"/>
+        <t t-set="current_units_total" t-value="0"/>
+        <t t-set="lines" t-value="o.invoice_line_ids.sorted(key=lambda l: (-l.sequence, l.date, l.move_name, -l.id), reverse=True)"/>
+        <t t-foreach="lines" t-as="line">
+            <t t-set="current_tax_total" t-value="current_tax_total + (line.price_total - line.price_subtotal)"/>
+            <t t-set="current_price_total" t-value="current_price_total + line.price_total"/>
+            <t t-set="current_units_total" t-value="current_units_total + line.quantity"/>
+            <div class="row">
+                <div class="col text-center border" t-field="line.name"/>
+                <div class="col text-center border" t-field="line.quantity"/>
+                <div class="col text-center border" t-field="line.price_unit"/>
+                <div class="col text-center border" t-field="line.price_subtotal"/>
+                <t t-set="taxes" t-value="', '.join([(tax.invoice_label or tax.name) for tax in line.tax_ids])"/>
+                <span class="col text-center border" t-out="taxes" id="line_tax_ids"/>
+                <div class="col text-center border" t-out="line.price_total - line.price_subtotal"/>
+                <div class="col text-center border" t-field="line.price_total"/>
+            </div>
+        </t>
+    </div>
+
+    <div class="container mt-3">
+        <h3>Total</h3>
+        <div class="row">
+            <div class="col bg-secondary text-center text-white border">Total unidades</div>
+            <div class="col bg-secondary text-center text-white border">Total Impuestos(€)</div>
+            <div class="col bg-secondary text-center text-white border">Precio Total</div>
+        </div>
+        <div class="row">
+            <div class="col text-center border" t-out="current_units_total"/>
+            <div class="col text-center border" t-out="current_tax_total"/>
+            <div class="col text-center border" t-out="current_price_total"/>
+        </div>
+    </div>
+
+    <div class="container mt-5">
+        <h1>Pago</h1>
+        <t t-set="pagado_total" t-value="0"/>
+        <t t-set="pagado_total" t-value="current_price_total-o.amount_residual"/>
+        <div class="row">
+            <div class="col bg-secondary text-center text-white border">Pagado</div>
+            <div class="col bg-secondary text-center text-white border">Por pagar</div>
+        </div>
+        <div class="row">
+            <div class="col text-center border" t-out="pagado_total"/>
+            <div class="col text-center border" t-field="o.amount_residual"/>
+        </div>
+    </div>
+
+    <div class="container mt-5">
+        <t t-if="o.amount_residual == 0">
+            <t t-set="payments_vals" t-value="o.sudo().invoice_payments_widget and o.sudo().invoice_payments_widget['content'] or []"/>
+            <t t-foreach="payments_vals" t-as="payment_vals">
+                <i class="oe_form_field text-end oe_payment_label">Pagado el: <t t-out="payment_vals['date']" t-options="{&quot;widget&quot;: &quot;date&quot;}">2021-09-19</t></i>
+            </t>
+            <img t-att-src="'https://img.freepik.com/vector-premium/ilustracion-pago-mano-exito-estilo-plano-ilustracion-vector-dinero-aprobado-sobre-fondo-aislado-concepto-negocio-signo-pago-exitoso_157943-6857.jpg?w=740'" alt="Descripción de la imagen" style="width: 100px;"/>
+        </t>
+    </div>
+</t>
